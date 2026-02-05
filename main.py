@@ -247,7 +247,7 @@ def extract_intelligence_advanced(text: str, existing_intel: dict) -> dict:
     
     # Bank accounts - multiple formats
     bank_patterns = [
-        r'\b\d{9,18}\b',  # 9-18 digits
+        r'\b\d{11,18}\b',  # 9-18 digits
         r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4,10}\b',  # Formatted
     ]
     
@@ -259,11 +259,15 @@ def extract_intelligence_advanced(text: str, existing_intel: dict) -> dict:
                 existing_intel['bankAccounts'].append(clean)
     
     # UPI IDs
-    upi_pattern = r'\b[a-zA-Z0-9.\-_]{2,}@(upi|paytm|ybl|okaxis|oksbi|okhdfc|icici|axis)\b'
-    upis = re.findall(upi_pattern, text)
-    for upi in upis:
-        if '@' in upi and upi not in existing_intel['upiIds']:
+    upi_pattern = r'([a-zA-Z0-9.\-_]{2,}@(upi|paytm|ybl|apl|okaxis|oksbi|okicici|gpay))'
+
+    matches = re.findall(upi_pattern, text, re.IGNORECASE)
+
+    for full, provider in matches:
+        upi = full.strip().lower()
+        if upi not in existing_intel['upiIds']:
             existing_intel['upiIds'].append(upi)
+
     
     # Phone numbers - multiple formats
     phone_patterns = [
@@ -500,12 +504,6 @@ Your confused response (1-2 sentences only):"""
         print("❌ GEMINI ERROR:", e)
 
         fallbacks = {
-            "english": "I'm confused. Can you explain clearly?",
-            "hinglish": "Mujhe thoda confusion ho raha hai. Clearly samjhao please?",
-            "hindi": "समझ नहीं आ रहा।"
-        }
-
-        fallbacks = {
     "english": [
         "I'm confused. Can you explain properly?",
         "Wait, I don't understand this.",
@@ -609,6 +607,14 @@ async def honeypot(request: Request):
     
     if not message:
         raise HTTPException(status_code=400, detail="Empty message")
+    
+    incoming_history = data.get("conversationHistory", [])
+
+    if incoming_history and session_id not in sessions:
+        sessions[session_id] = [
+            f"{m['sender'].capitalize()}: {m['text']}"
+            for m in incoming_history
+        ]
     
     # Detect language style
     language_style = detect_language_style(message)
