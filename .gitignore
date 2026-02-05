@@ -1,6 +1,8 @@
 # Virtual environment
 venv/
 .env
+.env.*
+
 
 # Python cache
 __pycache__/
@@ -12,3 +14,6 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+*.sqlite3
+.idea/
+.vscode/
